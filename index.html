@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SidelineReel - Roster Tagging Confidence Review Prototype</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b',
+            },
+            club: {
+              navy: '#0f172a',
+              card: '#1e293b',
+              accent: '#38bdf8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom sports turf styling and animations */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-attention {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col items-center justify-start p-2 sm:p-6 antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- TOP APP BAR / EVALUATOR CONTROLS -->
+  <header class="w-full max-w-5xl mb-4 sm:mb-6 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xl">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-black text-slate-950 text-lg shadow-md shadow-emerald-500/20">
+        SR
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">SidelineReel</h1>
+          <span class="text-xs bg-emerald-500/10 text-emerald-400 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">PM Assessment • Task 3</span>
+        </div>
+        <p class="text-xs text-slate-400 hidden sm:block">Human-in-the-Loop Roster Tagging Confidence Flow | Candidate: Ayush Kabra</p>
+      </div>
+    </div>
+
+    <!-- Quick navigation bar between the 3 screens -->
+    <div class="flex items-center space-x-1 sm:space-x-2 bg-slate-950/70 p-1 rounded-xl border border-slate-800 text-xs">
+      <button onclick="goToScreen(1)" id="tab-screen1" class="px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 bg-emerald-600 text-white shadow-sm">
+        1. Coach Dashboard
+      </button>
+      <button onclick="goToScreen(2)" id="tab-screen2" class="px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 text-slate-400 hover:text-white">
+        2. Tag Review (62%)
+      </button>
+      <button onclick="goToScreen(3)" id="tab-screen3" class="px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 text-slate-400 hover:text-white">
+        3. Reel Updated
+      </button>
+    </div>
+
+    <!-- Mode and PM Notes Toggles -->
+    <div class="flex items-center space-x-2">
+      <button onclick="toggleDeviceMode()" id="deviceToggleBtn" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center space-x-1.5 transition">
+        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+        </svg>
+        <span id="deviceToggleLabel">Mobile Frame</span>
+      </button>
+      
+      <button onclick="togglePMDrawer()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center space-x-1.5 transition">
+        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>PM Spec Logic</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- PM SPEC RATIONALE DRAWER (Collapsible overlay) -->
+  <div id="pmDrawer" class="hidden w-full max-w-5xl mb-6 bg-slate-900 border-2 border-emerald-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl relative transition-all duration-300">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="flex h-3 w-3 relative">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        </span>
+        <h3 class="text-sm font-bold text-emerald-300 uppercase tracking-wider">Product Manager Strategy & Material Analysis</h3>
+      </div>
+      <button onclick="togglePMDrawer()" class="text-slate-400 hover:text-white text-xs bg-slate-800 px-2 py-1 rounded">Close ✕</button>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3 text-xs">
+      <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+        <div class="text-amber-400 font-bold mb-1 flex items-center gap-1">
+          <span>🎯</span> Material 3: Jersey Bug
+        </div>
+        <p class="text-slate-300">
+          Support tickets from 3 separate clubs prove digits swap (14→4, 1→11). When digits fold, optical AI confidence dips below 75%. This UI catches ambiguity <i>before</i> reels generate.
+        </p>
+      </div>
+
+      <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+        <div class="text-emerald-400 font-bold mb-1 flex items-center gap-1">
+          <span>📊</span> Material 5: Vanity Trap
+        </div>
+        <p class="text-slate-300">
+          Headline 92% share rate is conditioned on opens. ~30% are <i>never opened</i> because the thumbnail shows the wrong kid! Human-in-the-loop verification protects the open rate.
+        </p>
+      </div>
+
+      <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+        <div class="text-red-400 font-bold mb-1 flex items-center gap-1">
+          <span>🚫</span> Material 2: Say/Do Gap
+        </div>
+        <p class="text-slate-300">
+          58% of parents requested a video editor, but only 6% ever opened it and &lt;1% completed an edit. We deliberately do <b>NOT</b> build more editing tools; we fix the automated core.
+        </p>
+      </div>
+
+      <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+        <div class="text-sky-400 font-bold mb-1 flex items-center gap-1">
+          <span>⚡</span> Material 1 & 4: Livestream
+        </div>
+        <p class="text-slate-300">
+          Carla's $180k renewal is crucial, but Carla admitted: <i>"reels are why half our parents renewed"</i>. Full livestreaming is massive infra. We protect renewals by perfecting reel delivery.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN PROTOTYPE CONTAINER -->
+  <main id="prototypeWrapper" class="w-full max-w-sm sm:max-w-md transition-all duration-300 flex justify-center">
+
+    <!-- DEVICE FRAME (Simulated iPhone / Mobile Container) -->
+    <div id="deviceFrame" class="w-full bg-slate-950 border-[6px] border-slate-800 rounded-[44px] shadow-2xl overflow-hidden relative flex flex-col min-h-[760px] max-h-[880px]">
+      
+      <!-- PHONE HARDWARE NOTCH / DYNAMIC ISLAND & STATUS BAR -->
+      <div class="bg-slate-950 pt-2.5 px-6 pb-2 flex items-center justify-between text-[11px] text-slate-400 font-semibold select-none z-30">
+        <span>9:41</span>
+        <div class="w-24 h-4 bg-slate-900 rounded-full border border-slate-800 flex items-center justify-center">
+          <div class="w-2.5 h-2.5 rounded-full bg-slate-950 ml-1"></div>
+        </div>
+        <div class="flex items-center space-x-1.5 text-slate-300">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M17.778 8.222c-4.296-4.296-11.26-4.296-15.556 0A1 1 0 01.808 6.808c5.076-5.077 13.308-5.077 18.384 0a1 1 0 01-1.414 1.414zM14.95 11.05a7 7 0 00-9.9 0 1 1 0 01-1.414-1.414 9 9 0 0112.728 0 1 1 0 01-1.414 1.414zm-2.829 2.828a3 3 0 00-4.242 0 1 1 0 01-1.415-1.414 5 5 0 017.072 0 1 1 0 01-1.415 1.414zM9 16a1 1 0 112 0 1 1 0 01-2 0z" clip-rule="evenodd"/></svg>
+          <div class="w-4 h-2 rounded-sm border border-slate-300 p-0.5 flex items-center">
+            <div class="h-full w-full bg-emerald-400 rounded-2xs"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IN-APP APPBAR -->
+      <nav class="bg-slate-900 border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between text-white select-none">
+        <div class="flex items-center space-x-2">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-xs">
+            ⚽
+          </div>
+          <div>
+            <div class="text-xs font-bold flex items-center gap-1">
+              <span>Ridgeline SC</span>
+              <span class="text-[10px] text-emerald-400 bg-emerald-950 px-1.5 py-0.2 rounded font-normal">U12 Blue</span>
+            </div>
+            <div class="text-[10px] text-slate-400">Coach Dave Miller</div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <span class="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Sync Active
+          </span>
+        </div>
+      </nav>
+
+      <!-- SCROLLABLE SCREEN CONTENT AREA -->
+      <div class="flex-1 overflow-y-auto custom-scroll relative bg-slate-950 flex flex-col justify-between">
+
+        <!-- ========================================== -->
+        <!-- SCREEN 1: COACH DASHBOARD -->
+        <!-- ========================================== -->
+        <div id="screen-1" class="p-4 space-y-4">
+          <!-- Game Match Header -->
+          <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-slate-800 rounded-2xl p-3.5 shadow-lg relative overflow-hidden">
+            <div class="absolute -right-4 -bottom-4 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl"></div>
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Latest Match Upload</span>
+                <h2 class="text-sm font-extrabold text-white mt-0.5">Ridgeline U12 vs. Valley FC</h2>
+                <p class="text-[11px] text-slate-400">Recorded Saturday • 64 min raw footage</p>
+              </div>
+              <div class="text-right">
+                <span class="inline-flex items-center text-[10px] font-semibold text-emerald-300 bg-emerald-950/80 border border-emerald-800/80 px-2 py-0.5 rounded-full">
+                  ✓ AI Processed
+                </span>
+                <p class="text-[10px] text-slate-400 mt-1">24 Highlights</p>
+              </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-800/80 text-center">
+              <div>
+                <div class="text-xs font-bold text-white">21</div>
+                <div class="text-[9px] text-slate-400">Verified Tags</div>
+              </div>
+              <div class="border-x border-slate-800">
+                <div class="text-xs font-bold text-amber-400 font-mono">3 Flagged</div>
+                <div class="text-[9px] text-amber-400/80">Needs Review</div>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-emerald-400">6:30 PM</div>
+                <div class="text-[9px] text-slate-400">Auto-Recap Send</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CORE CALLOUT BANNER: 3 CLIPS NEED REVIEW -->
+          <div class="bg-gradient-to-r from-amber-950/70 via-slate-900 to-amber-950/50 border-2 border-amber-500/80 rounded-2xl p-3.5 shadow-xl shadow-amber-500/10 relative">
+            <div class="flex items-start space-x-3">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex-shrink-0 flex items-center justify-center text-amber-400 text-sm">
+                ⚠️
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xs font-bold text-amber-200">3 Clips Need Review</h3>
+                  <span class="text-[9px] font-mono text-amber-400/90 bg-amber-500/20 px-1.5 py-0.5 rounded">Action Required</span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-snug">
+                  Jersey numbers unclear due to motion blur or folded fabric. Confirm player tags before reels send to parents tonight.
+                </p>
+
+                <!-- Micro preview of flagged jerseys -->
+                <div class="flex items-center space-x-2 mt-2.5">
+                  <span class="text-[10px] font-mono bg-slate-900/90 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
+                    #4 vs #14 (62%)
+                  </span>
+                  <span class="text-[10px] font-mono bg-slate-900/90 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
+                    #1 vs #11 (58%)
+                  </span>
+                  <span class="text-[10px] font-mono bg-slate-900/90 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded">
+                    #7 vs #17 (67%)
+                  </span>
+                </div>
+
+                <!-- CTA Button to go to Screen 2 -->
+                <button onclick="goToScreen(2)" class="w-full mt-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs py-2 px-3 rounded-xl shadow-md transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                  <span>Review 3 Clips Now (~30 sec)</span>
+                  <svg class="w-3.5 h-3.5 text-slate-950 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- UPCOMING AUTO-RECAP SCHEDULE (Addresses late-night sends from Material 5) -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs">
+                ⏰
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-slate-200">Scheduled Delivery: Tonight 6:30 PM</div>
+                <div class="text-[10px] text-slate-400">Peak parent engagement window (avoiding 11 PM drops)</div>
+              </div>
+            </div>
+            <span class="text-[10px] text-sky-400 font-mono bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800">
+              18 Families
+            </span>
+          </div>
+
+          <!-- RECENT VERIFIED CLIPS LIST (Show that 21 clips are already safe) -->
+          <div>
+            <div class="flex justify-between items-center mb-2 px-1">
+              <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">Auto-Verified Highlights (21)</span>
+              <span class="text-[10px] text-emerald-400">95%+ Confidence</span>
+            </div>
+            
+            <div class="space-y-1.5">
+              <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                  <div class="w-6 h-6 rounded-md bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-[10px] font-bold">
+                    #10
+                  </div>
+                  <div>
+                    <div class="text-xs font-medium text-slate-200">Noah Adams • Midfield Goal</div>
+                    <div class="text-[9px] text-slate-500">Minute 14 • 98% AI Confidence</div>
+                  </div>
+                </div>
+                <span class="text-[10px] text-emerald-400 font-medium">✓ Reel Ready</span>
+              </div>
+
+              <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-2.5 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                  <div class="w-6 h-6 rounded-md bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-[10px] font-bold">
+                    #8
+                  </div>
+                  <div>
+                    <div class="text-xs font-medium text-slate-200">Sammy Brooks • Diving Save</div>
+                    <div class="text-[9px] text-slate-500">Minute 29 • 96% AI Confidence</div>
+                  </div>
+                </div>
+                <span class="text-[10px] text-emerald-400 font-medium">✓ Reel Ready</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- SCREEN 2: REVIEW SCREEN (HUMAN IN THE LOOP) -->
+        <!-- ========================================== -->
+        <div id="screen-2" class="hidden p-4 space-y-3.5">
+          <!-- Review Header & Queue Progress -->
+          <div class="flex items-center justify-between pb-1 border-b border-slate-800">
+            <button onclick="goToScreen(1)" class="text-xs text-slate-400 hover:text-white flex items-center space-x-1">
+              <span>← Back</span>
+            </button>
+            <div class="flex items-center space-x-1.5">
+              <span id="clipProgressText" class="text-xs font-bold text-amber-300">Clip 1 of 3</span>
+              <div class="flex space-x-1 ml-1">
+                <div id="dot1" class="w-2 h-2 rounded-full bg-amber-400"></div>
+                <div id="dot2" class="w-2 h-2 rounded-full bg-slate-700"></div>
+                <div id="dot3" class="w-2 h-2 rounded-full bg-slate-700"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Clip Simulation & Computer Vision Bounding Box -->
+          <div class="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-xl aspect-video group flex flex-col justify-between">
+            <!-- Simulated Turf Background Graphic with Action Scene -->
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-slate-950/20 z-10"></div>
+            
+            <!-- Graphic Pitch Representation -->
+            <div class="absolute inset-0 opacity-40 bg-[radial-gradient(#059669_1px,transparent_1px)] [background-size:16px_16px]"></div>
+            
+            <!-- Simulated Player Figure with Jersey Detection Box -->
+            <div class="relative z-20 flex-1 flex items-center justify-center p-4">
+              <div class="relative flex flex-col items-center">
+                <!-- Computer Vision Bounding Box Overlay -->
+                <div class="relative border-2 border-dashed border-amber-400 rounded-lg p-3 bg-amber-500/10 shadow-lg shadow-amber-500/20 flex flex-col items-center animate-pulse">
+                  <div class="w-12 h-16 bg-emerald-600 rounded-md flex items-center justify-center text-white font-extrabold text-xl shadow-inner border border-emerald-400/50">
+                    <span id="detectedJerseyGlyph">14</span>
+                  </div>
+                  <!-- Tag overlay -->
+                  <div class="absolute -top-3 bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shadow">
+                    AI: <span id="detectedJerseyBadge">#4? (62%)</span>
+                  </div>
+                  <div class="absolute -bottom-2 text-[8px] bg-slate-900/90 text-amber-300 border border-amber-500/40 px-1 rounded">
+                    Digit fold detected
+                  </div>
+                </div>
+                <span class="text-[10px] text-slate-300 mt-2 font-mono" id="clipTimestamp">2nd Half • 34:12 • Fastbreak Shot</span>
+              </div>
+            </div>
+
+            <!-- Video Playback Bar Overlay -->
+            <div class="relative z-20 px-3 pb-2 flex items-center justify-between text-[10px] text-slate-400 bg-slate-950/70 backdrop-blur-xs">
+              <div class="flex items-center space-x-2">
+                <button class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-[9px]">▶</button>
+                <span>0:03 / 0:08</span>
+              </div>
+              <span class="text-amber-400 text-[10px] font-medium flex items-center gap-1">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                Low Confidence Tag (<span id="confScore">62%</span>)
+              </span>
+            </div>
+          </div>
+
+          <!-- Problem Insight Box: Why is this flagged? -->
+          <div class="bg-amber-950/40 border border-amber-500/40 rounded-xl p-2.5 text-[11px] text-slate-300 flex items-start space-x-2">
+            <span class="text-amber-400 text-xs">💡</span>
+            <div>
+              <span class="font-semibold text-amber-200">Optical Confusion:</span> 
+              <span id="diagnosticMsg">The first digit "1" was partially tucked into the shorts waistband, matching both #14 and #4.</span>
+            </div>
+          </div>
+
+          <!-- CANDIDATE SELECTION CARDS SIDE-BY-SIDE -->
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Select Roster Match:</span>
+              <span class="text-[9px] text-emerald-400 font-medium">Click candidate or button below</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5" id="candidatesContainer">
+              <!-- Candidate A (#14 Mia Thompson) -->
+              <div id="cardA" onclick="selectCandidate('A')" class="cursor-pointer border-2 border-emerald-500 bg-emerald-950/40 rounded-xl p-2.5 transition relative flex flex-col justify-between hover:bg-emerald-950/50 shadow-md">
+                <div class="absolute -top-2 right-2 bg-emerald-500 text-slate-950 font-bold text-[8px] px-1.5 py-0.2 rounded-full uppercase shadow">
+                  Suggested
+                </div>
+                <div>
+                  <div class="flex items-center space-x-2 mb-1.5">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-sm flex items-center justify-center border border-emerald-500/40" id="candAJersey">
+                      #14
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-white" id="candAName">Mia Thompson</h4>
+                      <p class="text-[9px] text-slate-400" id="candAPos">Forward • Attacking</p>
+                    </div>
+                  </div>
+                  <div class="text-[10px] text-slate-300 space-y-0.5 bg-slate-900/80 p-1.5 rounded-lg border border-slate-800">
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Position:</span>
+                      <span class="text-emerald-400 font-semibold" id="candAMatch">High (Striker)</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Match Stats:</span>
+                      <span class="text-slate-200" id="candAStats">1 Goal, 2 Shots</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2 text-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 py-1 rounded border border-emerald-500/30">
+                  Select #14
+                </div>
+              </div>
+
+              <!-- Candidate B (#4 Leo Vance) -->
+              <div id="cardB" onclick="selectCandidate('B')" class="cursor-pointer border border-slate-800 bg-slate-900/50 rounded-xl p-2.5 transition relative flex flex-col justify-between hover:border-slate-600">
+                <div>
+                  <div class="flex items-center space-x-2 mb-1.5">
+                    <div class="w-8 h-8 rounded-lg bg-slate-800 text-slate-300 font-black text-sm flex items-center justify-center border border-slate-700" id="candBJersey">
+                      #4
+                    </div>
+                    <div>
+                      <h4 class="text-xs font-bold text-slate-200" id="candBName">Leo Vance</h4>
+                      <p class="text-[9px] text-slate-400" id="candBPos">Center Back • Defense</p>
+                    </div>
+                  </div>
+                  <div class="text-[10px] text-slate-300 space-y-0.5 bg-slate-900/80 p-1.5 rounded-lg border border-slate-800">
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Position:</span>
+                      <span class="text-slate-400 font-semibold" id="candBMatch">Low (Backline)</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Match Stats:</span>
+                      <span class="text-slate-200" id="candBStats">0 Shots</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2 text-center text-[10px] font-bold text-slate-400 bg-slate-800/60 py-1 rounded border border-slate-700">
+                  Select #4
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTION BUTTONS: EXPLICIT ONE-TAP WORKFLOW -->
+          <div class="space-y-2 pt-1">
+            <button onclick="confirmAndFinish('A')" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs py-2.5 px-4 rounded-xl shadow-lg shadow-emerald-500/25 flex items-center justify-center space-x-2 transition cursor-pointer">
+              <span>✓ Confirm <span id="confirmBtnAName">Mia Thompson (#14)</span> & View Updated Reel</span>
+              <span class="text-xs">→</span>
+            </button>
+
+            <div class="flex space-x-2">
+              <button onclick="confirmAndNext('A')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 font-semibold text-xs py-2 px-2 rounded-xl border border-slate-700 transition cursor-pointer flex items-center justify-center space-x-1">
+                <span>Confirm & Next Clip (1/3)</span>
+              </button>
+              <button onclick="confirmAndFinish('B')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs py-2 px-2 rounded-xl border border-slate-700 transition cursor-pointer">
+                Confirm <span id="confirmBtnBName">Leo (#4)</span>
+              </button>
+              <button onclick="skipClip()" class="px-3 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 font-medium text-xs py-2 rounded-xl border border-slate-800 transition cursor-pointer" title="Keep clip in raw footage, but exclude from personal reel">
+                Skip
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- SCREEN 3: CONFIRMATION & AUTO-RECAP PREVIEW -->
+        <!-- ========================================== -->
+        <div id="screen-3" class="hidden p-4 space-y-3.5">
+          <!-- Success Hero Header -->
+          <div class="bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-900 border-2 border-emerald-500/60 rounded-2xl p-4 text-center relative overflow-hidden shadow-xl">
+            <div class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto text-lg mb-2 shadow-inner">
+              ✓
+            </div>
+            <h2 class="text-sm font-extrabold text-white">Reel Updated — Correct Kid Tagged!</h2>
+            <p class="text-[11px] text-emerald-300 mt-1">
+              Tagged: <span class="font-bold text-white" id="screen3TaggedName">Mia Thompson (#14)</span> • 1 clip added to reel
+            </p>
+            
+            <!-- Value Prop Banner -->
+            <div class="mt-3 bg-emerald-950/60 border border-emerald-800/80 rounded-xl py-1.5 px-3 flex items-center justify-center space-x-1.5 text-[10px] text-emerald-300">
+              <span>🛡️</span>
+              <span><b>Prevented 1 false notification</b> & wrong thumbnail delivery to family</span>
+            </div>
+          </div>
+
+          <!-- UPDATED PERSONAL REEL CARD -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center" id="screen3ReelJersey">
+                  #14
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white" id="screen3ReelTitle">Mia Thompson's Highlight Reel</div>
+                  <div class="text-[9px] text-slate-400">Matchday 6 • 4 Clips (Includes confirmed goal)</div>
+                </div>
+              </div>
+              <span class="text-[9px] text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-800">
+                Ready to Send
+              </span>
+            </div>
+
+            <!-- Thumbnail Preview with watermark (fixes Material 3 ticket) -->
+            <div class="relative aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center group cursor-pointer" onclick="playReelSimulation()">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/30 to-transparent z-10"></div>
+              
+              <!-- Simulated highlight frame soccer graphics -->
+              <div class="text-center z-20">
+                <div id="playReelBtn" class="w-11 h-11 rounded-full bg-emerald-500/90 hover:bg-emerald-400 text-slate-950 font-black text-sm flex items-center justify-center mx-auto mb-1.5 shadow-lg shadow-emerald-500/30 transition transform group-hover:scale-105">
+                  ▶
+                </div>
+                <div class="text-[10px] font-bold text-white" id="screen3ThumbnailLabel">Verified Thumbnail: Mia Thompson (#14)</div>
+                <div class="text-[9px] text-emerald-300">Tap to test 5-sec reel playback</div>
+              </div>
+
+              <!-- Animated Waveform simulator (when playing) -->
+              <div id="reelPlaybackBar" class="hidden absolute bottom-2 left-3 right-3 z-30 flex items-center justify-between bg-slate-900/90 px-2 py-1 rounded-lg border border-slate-700 text-[9px] text-slate-300">
+                <div class="flex items-center space-x-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span class="font-mono text-emerald-400">0:04 / 0:15</span>
+                </div>
+                <div class="flex items-center space-x-0.5">
+                  <div class="w-1 h-3 bg-emerald-400 rounded-full animate-bounce"></div>
+                  <div class="w-1 h-4 bg-emerald-400 rounded-full animate-bounce delay-75"></div>
+                  <div class="w-1 h-2 bg-emerald-400 rounded-full animate-bounce delay-150"></div>
+                  <div class="w-1 h-5 bg-emerald-400 rounded-full animate-bounce delay-100"></div>
+                </div>
+              </div>
+
+              <!-- Club Watermark in corner (Fixes Support Ticket #5) -->
+              <div class="absolute top-2 left-2 z-20 flex items-center space-x-1 bg-slate-900/80 px-2 py-0.5 rounded text-[8px] text-slate-300 border border-slate-700">
+                <span>⚽ Ridgeline SC</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- WEEKLY AUTO-RECAP PREVIEW (Material 2 & 5) -->
+          <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-3 space-y-2">
+            <div class="flex justify-between items-center">
+              <div>
+                <span class="text-[9px] font-bold text-sky-400 uppercase tracking-wider">Weekly Team Auto-Recap</span>
+                <h4 class="text-xs font-bold text-slate-200">Ridgeline U12 Team Recap Video</h4>
+              </div>
+              <span class="text-[9px] font-mono text-slate-400">Scheduled: 6:30 PM</span>
+            </div>
+
+            <div class="text-[10px] text-slate-400 bg-slate-950 p-2 rounded-xl border border-slate-800/80 space-y-1">
+              <div class="flex justify-between text-slate-300">
+                <span>Total Roster Families:</span>
+                <span class="font-bold text-white">18</span>
+              </div>
+              <div class="flex justify-between text-slate-300">
+                <span>Auto-Recap Share Rate:</span>
+                <span class="text-emerald-400 font-bold">90% of sent recaps shared</span>
+              </div>
+              <div class="flex justify-between text-slate-300">
+                <span>Optimized Timing:</span>
+                <span class="text-sky-300">6:30 PM (prevents late-night drop-off)</span>
+              </div>
+            </div>
+
+            <div class="flex space-x-2 pt-1">
+              <button onclick="alert('Success! Notification scheduled for 18 families at 6:30 PM tonight with 100% verified thumbnails.')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 rounded-xl transition cursor-pointer">
+                Schedule Confirmed (6:30 PM)
+              </button>
+              <button onclick="goToScreen(1)" class="px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs py-2 rounded-xl border border-slate-700 transition cursor-pointer">
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTOM NAV BAR -->
+        <div class="bg-slate-900/90 border-t border-slate-800 px-6 py-2.5 flex justify-around text-center text-slate-400 select-none">
+          <button onclick="goToScreen(1)" class="flex flex-col items-center group cursor-pointer">
+            <span class="text-sm group-hover:text-emerald-400">🏠</span>
+            <span class="text-[9px] mt-0.5 group-hover:text-emerald-400">Games</span>
+          </button>
+          <button onclick="goToScreen(2)" class="flex flex-col items-center group cursor-pointer relative">
+            <span class="text-sm group-hover:text-amber-400">🔍</span>
+            <span class="text-[9px] mt-0.5 group-hover:text-amber-400">Review</span>
+            <span id="navBadge" class="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-slate-950 font-bold text-[8px] flex items-center justify-center">3</span>
+          </button>
+          <button onclick="goToScreen(3)" class="flex flex-col items-center group cursor-pointer">
+            <span class="text-sm group-hover:text-sky-400">🎬</span>
+            <span class="text-[9px] mt-0.5 group-hover:text-sky-400">Recaps</span>
+          </button>
+          <button onclick="alert('Roster: 18 Active Players • Ridgeline Youth Soccer Club')" class="flex flex-col items-center group cursor-pointer">
+            <span class="text-sm group-hover:text-slate-200">👥</span>
+            <span class="text-[9px] mt-0.5 group-hover:text-slate-200">Roster</span>
+          </button>
+        </div>
+
+      </div> <!-- End Scrollable Area -->
+    </div> <!-- End Device Frame -->
+  </main>
+
+  <!-- JAVASCRIPT STATE ENGINE -->
+  <script>
+    // State of clips that need review
+    const clipsData = [
+      {
+        id: 1,
+        detectedJersey: "#4?",
+        confidence: "62%",
+        timestamp: "2nd Half • 34:12 • Fastbreak Shot",
+        glyph: "14",
+        diagnostic: "The leading digit '1' was folded against player side during forward run, confusing 14 with 4.",
+        candidateA: {
+          number: "#14",
+          name: "Mia Thompson",
+          pos: "Forward • Attacking",
+          matchLevel: "High (Striker in box)",
+          stats: "1 Goal, 2 Shots",
+          isSuggested: true
+        },
+        candidateB: {
+          number: "#4",
+          name: "Leo Vance",
+          pos: "Center Back • Defense",
+          matchLevel: "Low (Backline player)",
+          stats: "0 Shots",
+          isSuggested: false
+        }
+      },
+      {
+        id: 2,
+        detectedJersey: "#1?",
+        confidence: "58%",
+        timestamp: "1st Half • 18:05 • Corner Header",
+        glyph: "11",
+        diagnostic: "Single digit #1 versus double digit #11: Camera angle foreshortened the second digit on the back.",
+        candidateA: {
+          number: "#11",
+          name: "Lucas Miller",
+          pos: "Winger • Right Flank",
+          matchLevel: "High (Corner taker)",
+          stats: "1 Assist, 3 Crosses",
+          isSuggested: true
+        },
+        candidateB: {
+          number: "#1",
+          name: "Ethan Cole",
+          pos: "Goalkeeper",
+          matchLevel: "Impossible (Keeper was in goal)",
+          stats: "4 Saves",
+          isSuggested: false
+        }
+      },
+      {
+        id: 3,
+        detectedJersey: "#7?",
+        confidence: "67%",
+        timestamp: "2nd Half • 51:40 • Slide Tackle",
+        glyph: "17",
+        diagnostic: "Jersey wrinkled in mud during tackle. Digits 7 and 17 look identical under shadow.",
+        candidateA: {
+          number: "#17",
+          name: "Sophia Martinez",
+          pos: "Midfielder • Defensive",
+          matchLevel: "High (Tackle zone)",
+          stats: "3 Tackles Won",
+          isSuggested: true
+        },
+        candidateB: {
+          number: "#7",
+          name: "Chloe Davis",
+          pos: "Midfielder • Attacking",
+          matchLevel: "Medium (Bench sub at min 60)",
+          stats: "Substituted later",
+          isSuggested: false
+        }
+      }
+    ];
+
+    let currentClipIndex = 0;
+    let isMobileView = true;
+    let selectedPlayer = "Mia Thompson (#14)";
+
+    function goToScreen(screenNumber) {
+      // Hide all screens
+      document.getElementById('screen-1').classList.add('hidden');
+      document.getElementById('screen-2').classList.add('hidden');
+      document.getElementById('screen-3').classList.add('hidden');
+
+      // Reset tab styling
+      document.getElementById('tab-screen1').className = "px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 text-slate-400 hover:text-white";
+      document.getElementById('tab-screen2').className = "px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 text-slate-400 hover:text-white";
+      document.getElementById('tab-screen3').className = "px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 text-slate-400 hover:text-white";
+
+      // Show selected screen and highlight tab
+      if (screenNumber === 1) {
+        document.getElementById('screen-1').classList.remove('hidden');
+        document.getElementById('tab-screen1').className = "px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 bg-emerald-600 text-white shadow-sm";
+      } else if (screenNumber === 2) {
+        document.getElementById('screen-2').classList.remove('hidden');
+        document.getElementById('tab-screen2').className = "px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 bg-amber-600 text-white shadow-sm";
+        loadClip(currentClipIndex);
+      } else if (screenNumber === 3) {
+        document.getElementById('screen-3').classList.remove('hidden');
+        document.getElementById('tab-screen3').className = "px-2.5 py-1.5 rounded-lg font-semibold transition-all duration-200 bg-emerald-600 text-white shadow-sm";
+      }
+    }
+
+    function loadClip(index) {
+      const clip = clipsData[index];
+      document.getElementById('clipProgressText').innerText = `Clip ${index + 1} of 3`;
+      document.getElementById('detectedJerseyGlyph').innerText = clip.glyph;
+      document.getElementById('detectedJerseyBadge').innerText = `${clip.detectedJersey} (${clip.confidence})`;
+      document.getElementById('confScore').innerText = clip.confidence;
+      document.getElementById('clipTimestamp').innerText = clip.timestamp;
+      document.getElementById('diagnosticMsg').innerText = clip.diagnostic;
+
+      // Candidate A
+      document.getElementById('candAJersey').innerText = clip.candidateA.number;
+      document.getElementById('candAName').innerText = clip.candidateA.name;
+      document.getElementById('candAPos').innerText = clip.candidateA.pos;
+      document.getElementById('candAMatch').innerText = clip.candidateA.matchLevel;
+      document.getElementById('candAStats').innerText = clip.candidateA.stats;
+      document.getElementById('confirmBtnAName').innerText = `${clip.candidateA.name} (${clip.candidateA.number})`;
+
+      // Candidate B
+      document.getElementById('candBJersey').innerText = clip.candidateB.number;
+      document.getElementById('candBName').innerText = clip.candidateB.name;
+      document.getElementById('candBPos').innerText = clip.candidateB.pos;
+      document.getElementById('candBMatch').innerText = clip.candidateB.matchLevel;
+      document.getElementById('candBStats').innerText = clip.candidateB.stats;
+      document.getElementById('confirmBtnBName').innerText = `${clip.candidateB.name} (${clip.candidateB.number})`;
+
+      // Update dots
+      document.getElementById('dot1').className = index === 0 ? "w-2 h-2 rounded-full bg-amber-400" : (index > 0 ? "w-2 h-2 rounded-full bg-emerald-500" : "w-2 h-2 rounded-full bg-slate-700");
+      document.getElementById('dot2').className = index === 1 ? "w-2 h-2 rounded-full bg-amber-400" : (index > 1 ? "w-2 h-2 rounded-full bg-emerald-500" : "w-2 h-2 rounded-full bg-slate-700");
+      document.getElementById('dot3').className = index === 2 ? "w-2 h-2 rounded-full bg-amber-400" : "w-2 h-2 rounded-full bg-slate-700";
+    }
+
+    function selectCandidate(choice) {
+      const cardA = document.getElementById('cardA');
+      const cardB = document.getElementById('cardB');
+      if (choice === 'A') {
+        cardA.className = "cursor-pointer border-2 border-emerald-500 bg-emerald-950/40 rounded-xl p-2.5 transition relative flex flex-col justify-between shadow-md";
+        cardB.className = "cursor-pointer border border-slate-800 bg-slate-900/50 rounded-xl p-2.5 transition relative flex flex-col justify-between";
+      } else {
+        cardB.className = "cursor-pointer border-2 border-emerald-500 bg-emerald-950/40 rounded-xl p-2.5 transition relative flex flex-col justify-between shadow-md";
+        cardA.className = "cursor-pointer border border-slate-800 bg-slate-900/50 rounded-xl p-2.5 transition relative flex flex-col justify-between";
+      }
+    }
+
+    function updateScreen3Data(choice) {
+      const clip = clipsData[currentClipIndex];
+      const selected = choice === 'A' ? clip.candidateA : clip.candidateB;
+      document.getElementById('screen3TaggedName').innerText = `${selected.name} (${selected.number})`;
+      document.getElementById('screen3ReelJersey').innerText = selected.number;
+      document.getElementById('screen3ReelTitle').innerText = `${selected.name}'s Highlight Reel`;
+      document.getElementById('screen3ThumbnailLabel').innerText = `Verified Thumbnail: ${selected.name} (${selected.number})`;
+      document.getElementById('navBadge').innerText = "✓";
+      document.getElementById('navBadge').className = "absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-slate-950 font-bold text-[8px] flex items-center justify-center";
+    }
+
+    function confirmAndFinish(choice) {
+      updateScreen3Data(choice);
+      goToScreen(3);
+    }
+
+    function confirmAndNext(choice) {
+      updateScreen3Data(choice);
+      if (currentClipIndex < 2) {
+        currentClipIndex++;
+        loadClip(currentClipIndex);
+      } else {
+        goToScreen(3);
+      }
+    }
+
+    function skipClip() {
+      if (currentClipIndex < 2) {
+        currentClipIndex++;
+        loadClip(currentClipIndex);
+      } else {
+        goToScreen(3);
+      }
+    }
+
+    function playReelSimulation() {
+      const bar = document.getElementById('reelPlaybackBar');
+      const btn = document.getElementById('playReelBtn');
+      bar.classList.remove('hidden');
+      btn.innerText = "⏸";
+      setTimeout(() => {
+        bar.classList.add('hidden');
+        btn.innerText = "▶";
+      }, 4000);
+    }
+
+    function toggleDeviceMode() {
+      const wrapper = document.getElementById('prototypeWrapper');
+      const frame = document.getElementById('deviceFrame');
+      const label = document.getElementById('deviceToggleLabel');
+      
+      isMobileView = !isMobileView;
+      if (isMobileView) {
+        wrapper.className = "w-full max-w-sm sm:max-w-md transition-all duration-300 flex justify-center";
+        frame.className = "w-full bg-slate-950 border-[6px] border-slate-800 rounded-[44px] shadow-2xl overflow-hidden relative flex flex-col min-h-[760px] max-h-[880px]";
+        label.innerText = "Mobile Frame";
+      } else {
+        wrapper.className = "w-full max-w-2xl transition-all duration-300 flex justify-center";
+        frame.className = "w-full bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden relative flex flex-col min-h-[760px] max-h-[880px]";
+        label.innerText = "Expanded View";
+      }
+    }
+
+    function togglePMDrawer() {
+      const drawer = document.getElementById('pmDrawer');
+      drawer.classList.toggle('hidden');
+    }
+  </script>
+</body>
+</html>
